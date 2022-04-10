@@ -77,7 +77,6 @@ public class BatchCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
-
         List<Index> indexList = matchInputStringToIndex(model, searchType, userValue, batchType);
         if (indexList.size() == 0) {
             return new CommandResult(COMMAND_WORD
@@ -87,28 +86,18 @@ public class BatchCommand extends Command {
         List<CommandResult> commandResultList = new ArrayList<>();
         Person restorePerson = model.getFilteredPersonList().get(indexList.get(0).getZeroBased());
         AddressBookParser addressBookParser = new AddressBookParser();
-
         for (Index index: indexList) {
             try {
                 String commandText = ParserUtil.parseAndCreateNewCommand(
                         commandInput, Integer.toString(index.getOneBased()));
-
-                if (!commandText.startsWith(EditPersonCommand.COMMAND_WORD)
-                        && !commandText.startsWith(DeletePersonCommand.COMMAND_WORD)) {
-                    throw new CommandException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
-                            BatchCommand.MESSAGE_USAGE));
-                }
+                checkCommandText(commandText);
                 logger.info("----------------[BATCH COMMAND][" + commandText + "]");
                 Command command = addressBookParser.parseCommand(commandText);
-
                 try {
                     commandResultList.add(command.execute(model));
                 } catch (CommandException ce) {
                     commandResultList.clear();
-                    if (commandText.startsWith(EditPersonCommand.COMMAND_WORD)) {
-                        model.setPerson(model.getFilteredPersonList().get(indexList.get(0).getZeroBased()),
-                                restorePerson);
-                    }
+                    revertPersonList(model, indexList, commandText, restorePerson);
                     commandResultList.add(new CommandResult(ce.getMessage()));
                     break;
                 }
@@ -140,7 +129,6 @@ public class BatchCommand extends Command {
         for (int i = 0; i < personList.size(); i++) {
             Person person = personList.get(i);
             Index index = Index.fromZeroBased(i);
-
             String targetField;
             switch (searchType.searchType) {
             case SearchType.TYPE_PHONE:
@@ -161,6 +149,13 @@ public class BatchCommand extends Command {
         return indexList;
     }
 
+    /**
+     * Creates indexList base on targetField.
+     *
+     * @param indexList     index list to add
+     * @param targetField   user input target
+     * @param index         target index
+     */
     private void createIndexList(List<Index> indexList, String targetField, Index index)
             throws CommandException {
         if (!targetField.isEmpty()) {
@@ -184,6 +179,35 @@ public class BatchCommand extends Command {
                 throw new CommandException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
                         BatchCommand.MESSAGE_USAGE));
             }
+        }
+    }
+
+    /**
+     * Checks validity of command text.
+     *
+     * @param commandText            String of command
+     */
+    private void checkCommandText(String commandText) throws CommandException {
+        if (!commandText.startsWith(EditPersonCommand.COMMAND_WORD)
+                && !commandText.startsWith(DeletePersonCommand.COMMAND_WORD)) {
+            throw new CommandException(String.format(MESSAGE_INVALID_COMMAND_FORMAT,
+                    RangeCommand.MESSAGE_USAGE));
+        }
+    }
+
+    /**
+     * Restores to previous name in special case when duplicated name editing.
+     *
+     * @param model                  model for command
+     * @param indexList              of the person in the filtered person list to edit
+     * @param commandText            String of command
+     * @param restorePerson          revert of person
+     */
+    private void revertPersonList(Model model, List<Index> indexList,
+                                  String commandText, Person restorePerson) {
+        if (commandText.startsWith(EditPersonCommand.COMMAND_WORD)) {
+            model.setPerson(model.getFilteredPersonList().get(indexList.get(0).getZeroBased()),
+                    restorePerson);
         }
     }
 

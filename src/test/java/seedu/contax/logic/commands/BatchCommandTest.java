@@ -2,6 +2,7 @@ package seedu.contax.logic.commands;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.contax.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.contax.testutil.Assert.assertThrows;
 import static seedu.contax.testutil.TypicalPersons.getTypicalAddressBook;
 
@@ -159,6 +160,16 @@ public class BatchCommandTest {
                 new BatchCommand("sample invalid",
                         new SearchType(SearchType.TYPE_PHONE), "94351253", BatchType.EQUALS);
         assertThrows(CommandException.class, () -> expectedBatchCommand.execute(model));
+    }
+
+    @Test
+    public void execute_inValidCommandDuplicate_throwsCommandException() throws CommandException {
+        BatchCommand expectedBatchCommand =
+                new BatchCommand("editperson n/123",
+                        new SearchType(SearchType.TYPE_NAME), "", BatchType.START);
+        CommandResult commandResult = expectedBatchCommand.execute(model);
+        Model expectedModel = model;
+        assertCommandSuccess(expectedBatchCommand, model, commandResult, expectedModel);
     }
 
 }

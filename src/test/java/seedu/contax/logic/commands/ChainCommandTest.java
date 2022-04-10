@@ -2,6 +2,7 @@ package seedu.contax.logic.commands;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static seedu.contax.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.contax.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 import static seedu.contax.testutil.TypicalPersons.getTypicalAddressBook;
 
@@ -11,12 +12,14 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import seedu.contax.commons.core.index.Index;
 import seedu.contax.logic.commands.exceptions.CommandException;
 import seedu.contax.model.AddressBook;
 import seedu.contax.model.Model;
 import seedu.contax.model.ModelManager;
 import seedu.contax.model.Schedule;
 import seedu.contax.model.UserPrefs;
+import seedu.contax.model.person.Name;
 import seedu.contax.model.person.Person;
 import seedu.contax.testutil.EditPersonDescriptorBuilder;
 import seedu.contax.testutil.PersonBuilder;
@@ -87,5 +90,20 @@ public class ChainCommandTest {
                 "Edited Person: \n**Name: **Amy Bee\n**Phone: **85355255\n**Email: **amy@gmail.com\n"
                 + "**Address: **123, Jurong West Ave 6, #08-111\n"
                 + "Listed all persons"));
+    }
+
+    @Test
+    public void execute_inValidCommandDuplicate_throwsCommandException() throws CommandException {
+        List<Command> commandList = new ArrayList<>();
+        EditPersonCommand.EditPersonDescriptor editDescriptor = new EditPersonCommand.EditPersonDescriptor();
+        editDescriptor.setName(new Name("a"));
+        commandList.add(new EditPersonCommand(Index.fromZeroBased(1), editDescriptor));
+        commandList.add(new EditPersonCommand(Index.fromZeroBased(2), editDescriptor));
+
+        ChainCommand expectedBatchCommand =
+                new ChainCommand(commandList);
+        CommandResult commandResult = expectedBatchCommand.execute(model);
+        Model expectedModel = model;
+        assertCommandSuccess(expectedBatchCommand, model, commandResult, expectedModel);
     }
 }
